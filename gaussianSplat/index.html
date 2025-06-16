@@ -36,9 +36,9 @@
     const mode = parseInt(urlParams.get('mode')) || 0;
   
     const viewer = new GaussianSplats3D.Viewer({
-        'cameraUp': [0, -1, -0.54],
+        'cameraUp': [0, 1, 0],
         'initialCameraPosition': [0.2545772143590187, -0.022421991409040026, -5.515991088728122],
-        'initialCameraLookAt': [1.52976, 2.27776, 1.65898],
+        'initialCameraLookAt': [0, 0, 0],
         'sphericalHarmonicsDegree': 2,
     });
     let path = 'https://gaussian-data-1312600229.cos.ap-beijing.myqcloud.com/point_cloud.ply';
