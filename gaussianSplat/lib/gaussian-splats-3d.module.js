@@ -4729,7 +4729,7 @@ var Utils = /*#__PURE__*/Object.freeze({
 });
 
 /*
-Copyright © 2010-2024 three.js authors & Mark Kellogg
+Copyright 漏 2010-2024 three.js authors & Mark Kellogg
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -4757,6 +4757,7 @@ const _ray = new Ray$1();
 const _plane = new Plane();
 const TILT_LIMIT = Math.cos( 70 * MathUtils.DEG2RAD );
 
+
 class OrbitControls extends EventDispatcher {
 
     constructor( object, domElement ) {
@@ -4766,6 +4767,11 @@ class OrbitControls extends EventDispatcher {
         this.object = object;
         this.domElement = domElement;
         this.domElement.style.touchAction = 'none'; // disable touch scroll
+
+        /**-----------------------------------------鏂板姞鏁版嵁------------------------------------------ */
+        this.movingKeys = {};
+        this.moveInterval = null;
+        /**------------------------------------------------------------------------------------------ */
 
         // Set to false to disable this control
         this.enabled = true;
@@ -4818,7 +4824,7 @@ class OrbitControls extends EventDispatcher {
         this.autoRotateSpeed = 2.0; // 30 seconds per orbit when fps is 60
 
         // The four arrow keys
-        this.keys = { LEFT: 'KeyA', UP: 'KeyW', RIGHT: 'KeyD', BOTTOM: 'KeyS' };
+        this.keys = { CHANGE: 'KeyZ', LEFT: 'KeyA', UP: 'KeyW', RIGHT: 'KeyD', BOTTOM: 'KeyS', UPWARD: 'Space', DOWN: 'ShiftLeft' };
 
         // Mouse buttons
         this.mouseButtons = { LEFT: MOUSE.ROTATE, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.PAN };
@@ -4834,9 +4840,36 @@ class OrbitControls extends EventDispatcher {
         // the target DOM element for key events
         this._domElementKeyEvents = null;
 
+        
+
+        /**----------------------------------------------- */
+        this.isFirstPersonMode = false; // 鏄惁涓虹涓€浜虹О妯″紡, 榛樿涓篺alse
+        this.moveSpeed = 5;             // 绗竴浜虹О绉诲姩閫熷害
+        this._moveDir = new THREE.Vector3();
+        this._velocity = new THREE.Vector3();
+        this._yaw = 0;
+        this._pitch = 0;
+
+        /**----------------------------------------------- */
+        
+        // -----------銆愭柊澧烇細鍒濆鍖栫涓€浜虹О鏈濆悜銆?----------
+        if (this.isFirstPersonMode) {
+            const euler = new THREE.Euler().setFromQuaternion(this.object.quaternion, 'YXZ');
+            this._yaw = euler.y;
+            this._pitch = euler.x;
+            // 鍙€夛細鎵撳嵃鍒濆鐩告満鍙傛暟
+            // console.log('[Init] 鐩告満鍒濆 position:', this.object.position.toArray());
+            // console.log('[Init] 鐩告満鍒濆 quaternion:', this.object.quaternion.toArray());
+            // console.log('[Init] 绗竴浜虹О鍒濆 _yaw:', this._yaw, '_pitch:', this._pitch);
+        }
+        // -----------------------------------------------
+
+
+
         //
         // public methods
         //
+
 
         this.getPolarAngle = function() {
 
@@ -4859,6 +4892,7 @@ class OrbitControls extends EventDispatcher {
         this.listenToKeyEvents = function( domElement ) {
 
             domElement.addEventListener( 'keydown', onKeyDown );
+            domElement.addEventListener('keyup', onKeyUp); // 鏂板
             this._domElementKeyEvents = domElement;
 
         };
@@ -4866,6 +4900,7 @@ class OrbitControls extends EventDispatcher {
         this.stopListenToKeyEvents = function() {
 
             this._domElementKeyEvents.removeEventListener( 'keydown', onKeyDown );
+            this._domElementKeyEvents.removeEventListener('keyup', onKeyUp); // 鏂板
             this._domElementKeyEvents = null;
 
         };
@@ -4920,6 +4955,23 @@ class OrbitControls extends EventDispatcher {
             const twoPI = 2 * Math.PI;
 
             return function update() {
+
+                /**------------------------------------------------------------------ */
+                if (scope.isFirstPersonMode) {
+                    const delta = 0.016; // 鍙互鎺ュ彈 deltaTime 浣滀负鍙傛暟杩涗竴姝ヤ紭鍖?                    scope._moveDir.set(0, 0, 0);
+
+                    if (scope.movingKeys['KeyW']) scope._moveDir.z -= 1;
+                    if (scope.movingKeys['KeyS']) scope._moveDir.z += 1;
+                    if (scope.movingKeys['KeyA']) scope._moveDir.x -= 1;
+                    if (scope.movingKeys['KeyD']) scope._moveDir.x += 1;
+
+                    scope._moveDir.normalize().applyEuler(scope.object.rotation);
+                    scope._velocity.copy(scope._moveDir).multiplyScalar(scope.moveSpeed * delta);
+                    scope.object.position.add(scope._velocity);
+
+                    return false; // 璺宠繃 Orbit 妯″紡涓嬬殑鏇存柊
+                }
+                /**------------------------------------------------------------------ */
 
                 quat.setFromUnitVectors( object.up, new Vector3( 0, 1, 0 ) );
                 quatInverse.copy(quat).invert();
@@ -5212,6 +5264,30 @@ class OrbitControls extends EventDispatcher {
 
         const pointers = [];
         const pointerPositions = {};
+        
+
+        /**----------------------------------------------- */
+        function enableFirstPerson(enable = true) {
+            
+            scope.isFirstPersonMode = enable;
+            if (enable) {
+                // 鍚屾褰撳墠鐩告満鏈濆悜鍒?_yaw/_pitch
+                const euler = new THREE.Euler().setFromQuaternion(scope.object.quaternion, 'YXZ');
+                scope._yaw = euler.y;
+                scope._pitch = euler.x;
+            }
+            // if (enable) {
+            //     scope.enableRotate = false;
+            //     scope.enableZoom = false;
+            //     scope.enablePan = false;
+                // scope.domElement.requestPointerLock(); // 鍙€?            // } else {
+                // document.exitPointerLock(); // 鍙€?            //     scope.enableRotate = true;
+            //     scope.enableZoom = true;
+            //     scope.enablePan = true;
+            // }
+        };
+        /**----------------------------------------------- */
+
 
         function getAutoRotationAngle() {
 
@@ -5242,6 +5318,7 @@ class OrbitControls extends EventDispatcher {
             const v = new Vector3();
 
             return function panLeft( distance, objectMatrix ) {
+                console.log(530666, distance, objectMatrix )
 
                 v.setFromMatrixColumn( objectMatrix, 0 ); // get X column of objectMatrix
                 v.multiplyScalar( - distance );
@@ -5251,15 +5328,15 @@ class OrbitControls extends EventDispatcher {
             };
 
         }();
-
         const panUp = function() {
 
             const v = new Vector3();
 
             return function panUp( distance, objectMatrix ) {
+                console.log(5321111, distance, objectMatrix )
 
                 if ( scope.screenSpacePanning === true ) {
-                    // 原始写法
+                    // 鍘熷鍐欐硶
 
                     // v.setFromMatrixColumn( objectMatrix, 1 );
 
@@ -5280,7 +5357,7 @@ class OrbitControls extends EventDispatcher {
 
         }();
 
-        // deltaX and deltaY are in pixels; right and down are positive
+        // 绉诲姩 deltaX and deltaY are in pixels; right and down are positive
         const pan = function() {
 
             const offset = new Vector3();
@@ -5304,6 +5381,7 @@ class OrbitControls extends EventDispatcher {
                     panUp( 2 * deltaY * targetDistance / element.clientHeight, scope.object.matrix );
 
                 } else if ( scope.object.isOrthographicCamera ) {
+                    console.log(22222)
 
                     // orthographic
                     panLeft( deltaX * ( scope.object.right - scope.object.left ) /
@@ -5407,6 +5485,27 @@ class OrbitControls extends EventDispatcher {
 
         function handleMouseMoveRotate( event ) {
 
+            
+
+/**-------------------------------------------------------- */
+            if (scope.isFirstPersonMode) {
+                // console.log(54777)
+                scope._yaw -= event.movementX * 0.002;
+                scope._pitch -= event.movementY * 0.002;
+
+                // 闄愬埗 pitch 鑼冨洿锛岄槻姝㈡姮澶存姮鍒板ぉ鑺辨澘
+                const limit = Math.PI / 2 - 0.01;
+                scope._pitch = Math.max(-limit, Math.min(limit, scope._pitch));
+
+                // 鉁?鐢ㄥ洓鍏冩暟鏇夸唬 rotation 璁剧疆锛屽交搴曢伩鍏嶇炕杞拰閿欎贡
+                const euler = new THREE.Euler(scope._pitch, scope._yaw, 0, 'YXZ');
+                scope.object.quaternion.setFromEuler(euler);
+
+                return;
+            }
+
+/**-------------------------------------------------------- */
+
             rotateEnd.set( event.clientX, event.clientY );
 
             rotateDelta.subVectors( rotateEnd, rotateStart ).multiplyScalar( scope.rotateSpeed );
@@ -5420,6 +5519,7 @@ class OrbitControls extends EventDispatcher {
             rotateStart.copy( rotateEnd );
 
             scope.update();
+
 
         }
 
@@ -5446,16 +5546,35 @@ class OrbitControls extends EventDispatcher {
         }
 
         function handleMouseMovePan( event ) {
+            if (scope.isFirstPersonMode) {
+                // 璁＄畻骞崇Щ澧為噺
+                panEnd.set(event.clientX, event.clientY);
+                panDelta.subVectors(panEnd, panStart).multiplyScalar(scope.panSpeed * 0.01);
 
-            panEnd.set( event.clientX, event.clientY );
+                // 璁＄畻鐩告満鍙虫柟鍚戝拰涓婃柟鍚?                const right = new THREE.Vector3();
+                scope.object.getWorldDirection(right);
+                right.cross(scope.object.up).normalize();
 
-            panDelta.subVectors( panEnd, panStart ).multiplyScalar( scope.panSpeed );
+                const up = new THREE.Vector3();
+                up.copy(scope.object.up).normalize();
 
-            pan( panDelta.x, panDelta.y );
+                // 鏍规嵁榧犳爣绉诲姩閲忓钩绉荤浉鏈?                scope.object.position.addScaledVector(right, panDelta.x);
+                scope.object.position.addScaledVector(up, panDelta.y);
 
-            panStart.copy( panEnd );
+                panStart.copy(panEnd);
+                return;
+            } else {
+                panEnd.set( event.clientX, event.clientY );
 
-            scope.update();
+                panDelta.subVectors( panEnd, panStart ).multiplyScalar( scope.panSpeed );
+
+                pan( panDelta.x, panDelta.y );
+
+                panStart.copy( panEnd );
+
+                scope.update();
+            }
+            
 
         }
 
@@ -5471,92 +5590,117 @@ class OrbitControls extends EventDispatcher {
 
                 dollyOut( getZoomScale() );
 
-                console.log(546777777)
             }
 
             scope.update();
 
         }
-
+        /**-----------------------------------------鏂板姞鏁版嵁-------------------------------------------- */
+        function handleKeyUp(event) {
+            if (scope.movingKeys[event.code]) {
+                delete scope.movingKeys[event.code];
+                if (Object.keys(scope.movingKeys).length === 0 && scope.moveInterval) {
+                    clearInterval(scope.moveInterval);
+                    scope.moveInterval = null;
+                }
+            }
+        }
+        /**-------------------------------------------------------------------------------------------- */
         function handleKeyDown( event ) {
 
             let needsUpdate = false;
 
+        /**-----------------------------------------鏂板姞鏁版嵁-------------------------------------------- */
+        // 璁板綍鎸変笅鐨勬柟鍚戦敭
+        if (!scope.movingKeys[event.code]) {
+            scope.movingKeys[event.code] = true;
+        }
+        /**-------------------------------------------------------------------------------------------- */
+
+        if (!scope.movingKeys[event.code]) {
+            scope.movingKeys[event.code] = true;
+            // 鎸変笅鏃剁珛鍗崇Щ鍔ㄤ竴娆?            
+            switch (event.code) {
+                case scope.keys.UP:
+                    if (event.ctrlKey || event.metaKey || event.shiftKey) {
+                        rotateUp(2 * Math.PI * scope.rotateSpeed / scope.domElement.clientHeight);
+                    } else {
+                        pan(0, -scope.keyPanSpeed);
+                    }
+                    break;
+                case scope.keys.BOTTOM:
+                    if (event.ctrlKey || event.metaKey || event.shiftKey) {
+                        rotateUp(-2 * Math.PI * scope.rotateSpeed / scope.domElement.clientHeight);
+                    } else {
+                        pan(0, scope.keyPanSpeed);
+                    }
+                    break;
+                case scope.keys.LEFT:
+                    if (event.ctrlKey || event.metaKey || event.shiftKey) {
+                        rotateLeft(2 * Math.PI * scope.rotateSpeed / scope.domElement.clientHeight);
+                    } else {
+                        pan(scope.keyPanSpeed, 0);
+                    }
+                    break;
+                case scope.keys.RIGHT:
+                    if (event.ctrlKey || event.metaKey || event.shiftKey) {
+                        rotateLeft(-2 * Math.PI * scope.rotateSpeed / scope.domElement.clientHeight);
+                    } else {
+                        pan(-scope.keyPanSpeed, 0);
+                    }
+                    break;
+            }
+            scope.update();
+        }
+
+        if (!scope.moveInterval) {
+            scope.moveInterval = setInterval(() => {
+                for (let code in scope.movingKeys) {
+                    switch (code) {
+                        case scope.keys.UP:
+                            if (event.ctrlKey || event.metaKey || event.shiftKey) {
+                                rotateUp(2 * Math.PI * scope.rotateSpeed / scope.domElement.clientHeight);
+                            } else {
+                                pan(0, -scope.keyPanSpeed);
+                            }
+                            break;
+                        case scope.keys.BOTTOM:
+                            if (event.ctrlKey || event.metaKey || event.shiftKey) {
+                                rotateUp(-2 * Math.PI * scope.rotateSpeed / scope.domElement.clientHeight);
+                            } else {
+                                pan(0, scope.keyPanSpeed);
+                            }
+                            break;
+                        case scope.keys.LEFT:
+                            if (event.ctrlKey || event.metaKey || event.shiftKey) {
+                                rotateLeft(2 * Math.PI * scope.rotateSpeed / scope.domElement.clientHeight);
+                            } else {
+                                pan(scope.keyPanSpeed, 0);
+                            }
+                            break;
+                        case scope.keys.RIGHT:
+                            if (event.ctrlKey || event.metaKey || event.shiftKey) {
+                                rotateLeft(-2 * Math.PI * scope.rotateSpeed / scope.domElement.clientHeight);
+                            } else {
+                                pan(-scope.keyPanSpeed, 0);
+                            }
+                            break;
+                    }
+                }
+                scope.update();
+            }, 16); // 绾?0fps
+        }
+
             switch ( event.code ) {
 
-                case scope.keys.UP:
-
-                    if ( event.ctrlKey || event.metaKey || event.shiftKey ) {
-
-                        rotateUp( 2 * Math.PI * scope.rotateSpeed / scope.domElement.clientHeight );
-
-                    } else {
-                        // 原始写法
-
-                        // pan( 0, scope.keyPanSpeed );
-
-                        pan( 0, - scope.keyPanSpeed );
-
-                    }
+                case scope.keys.CHANGE:
+                    
+                    enableFirstPerson(!scope.isFirstPersonMode);
 
                     needsUpdate = true;
                     break;
-
-                case scope.keys.BOTTOM:
-
-                    if ( event.ctrlKey || event.metaKey || event.shiftKey ) {
-
-                        rotateUp( - 2 * Math.PI * scope.rotateSpeed / scope.domElement.clientHeight );
-
-                    } else {
-                        // 原始写法
-
-                        // pan( 0, - scope.keyPanSpeed );
-
-                        pan( 0, scope.keyPanSpeed );
-
-                    }
-
-                    needsUpdate = true;
-                    break;
-
-                case scope.keys.LEFT:
-
-                    if ( event.ctrlKey || event.metaKey || event.shiftKey ) {
-
-                        rotateLeft( 2 * Math.PI * scope.rotateSpeed / scope.domElement.clientHeight );
-
-                    } else {
-                        // 原始写法
-
-                        // pan( scope.keyPanSpeed, 0 );
-                        pan( - scope.keyPanSpeed, 0 );
-
-                    }
-
-                    needsUpdate = true;
-                    break;
-
-                case scope.keys.RIGHT:
-
-                    if ( event.ctrlKey || event.metaKey || event.shiftKey ) {
-
-                        rotateLeft( - 2 * Math.PI * scope.rotateSpeed / scope.domElement.clientHeight );
-
-                    } else {
-                        // 原始写法
-
-                        // pan( - scope.keyPanSpeed, 0 );
-                        pan( scope.keyPanSpeed, 0 );
-
-                    }
-
-                    needsUpdate = true;
-                    break;
-
-            }
-
-            if ( needsUpdate ) {
+                }
+            if (needsUpdate) {
 
                 // prevent the browser from scrolling on cursor keys
                 event.preventDefault();
@@ -5630,6 +5774,36 @@ class OrbitControls extends EventDispatcher {
         }
 
         function handleTouchMoveRotate( event ) {
+            /**-------------------------------------------------------- */ 
+            if (scope.isFirstPersonMode) {
+                // 璁＄畻 touch 绉诲姩璺濈
+                let dx, dy;
+                if (pointers.length === 1) {
+                    dx = event.pageX - rotateStart.x;
+                    dy = event.pageY - rotateStart.y;
+                    rotateEnd.set(event.pageX, event.pageY);
+                } else {
+                    const position = getSecondPointerPosition(event);
+                    const x = 0.5 * (event.pageX + position.x);
+                    const y = 0.5 * (event.pageY + position.y);
+                    dx = x - rotateStart.x;
+                    dy = y - rotateStart.y;
+                    rotateEnd.set(x, y);
+                }
+
+                // 鏃嬭浆鐏垫晱搴﹀彲鏍规嵁闇€瑕佽皟鏁?                scope._yaw -= dx * 0.008;
+                scope._pitch -= dy * 0.008;
+
+                const limit = Math.PI / 2 - 0.01;
+                scope._pitch = Math.max(-limit, Math.min(limit, scope._pitch));
+
+                const euler = new THREE.Euler(scope._pitch, scope._yaw, 0, 'YXZ');
+                scope.object.quaternion.setFromEuler(euler);
+
+                rotateStart.copy(rotateEnd);
+                return;
+            }
+            /**-------------------------------------------------------- */ 
 
             if ( pointers.length == 1 ) {
 
@@ -5659,6 +5833,33 @@ class OrbitControls extends EventDispatcher {
         }
 
         function handleTouchMovePan( event ) {
+        /**---------------------------------------- */
+            if (scope.isFirstPersonMode) {
+                // 鍙屾寚骞崇Щ锛氬乏鍙?涓婁笅骞崇Щ鐩告満
+                if (pointers.length === 1) {
+                    panEnd.set(event.pageX, event.pageY);
+                } else {
+                    const position = getSecondPointerPosition(event);
+                    const x = 0.5 * (event.pageX + position.x);
+                    const y = 0.5 * (event.pageY + position.y);
+                    panEnd.set(x, y);
+                }
+                panDelta.subVectors(panEnd, panStart).multiplyScalar(scope.panSpeed * 0.01);
+
+                // 璁＄畻鐩告満鍙虫柟鍚戝拰涓婃柟鍚?                const right = new THREE.Vector3();
+                scope.object.getWorldDirection(right);
+                right.cross(scope.object.up).normalize();
+
+                const up = new THREE.Vector3();
+                up.copy(scope.object.up).normalize();
+
+                // 鏍规嵁鎵嬫寚绉诲姩閲忓钩绉荤浉鏈?                scope.object.position.addScaledVector(right, panDelta.x);
+                scope.object.position.addScaledVector(up, -panDelta.y);
+
+                panStart.copy(panEnd);
+                return;
+            }
+         /**---------------------------------------- */
 
             if ( pointers.length === 1 ) {
 
@@ -5684,6 +5885,26 @@ class OrbitControls extends EventDispatcher {
         }
 
         function handleTouchMoveDolly( event ) {
+        /**---------------------------------------- */
+            if (scope.isFirstPersonMode) {
+                // 鍙屾寚缂╂斁锛氬墠鍚庣Щ鍔ㄧ浉鏈?                const position = getSecondPointerPosition(event);
+                const dx = event.pageX - position.x;
+                const dy = event.pageY - position.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                dollyEnd.set(0, distance);
+                dollyDelta.set(0, dollyEnd.y - dollyStart.y);
+
+                // 缂╂斁鐏垫晱搴﹀彲璋?                const moveDelta = dollyDelta.y * 0.01;
+                const dir = new THREE.Vector3();
+                scope.object.getWorldDirection(dir);
+                scope.object.position.addScaledVector(dir, moveDelta);
+
+                dollyStart.copy(dollyEnd);
+                return;
+            }
+        /**---------------------------------------- */
+
 
             const position = getSecondPointerPosition( event );
 
@@ -5722,33 +5943,54 @@ class OrbitControls extends EventDispatcher {
         // event handlers - FSM: listen for events and reset state
         //
 
-        function onPointerDown( event ) {
+        function onPointerDown(event) {
+            if (scope.enabled === false) return;
 
-            if ( scope.enabled === false ) return;
+            const isPointerLocked = document.pointerLockElement === scope.domElement;
 
-            if ( pointers.length === 0 ) {
-
-                scope.domElement.setPointerCapture( event.pointerId );
-
-                scope.domElement.addEventListener( 'pointermove', onPointerMove );
-                scope.domElement.addEventListener( 'pointerup', onPointerUp );
-
+            if (!isPointerLocked && event.target === scope.domElement && pointers.length === 0) {
+                try {
+                    scope.domElement.setPointerCapture(event.pointerId);
+                } catch (e) {
+                    console.warn('setPointerCapture failed:', e);
+                }
+                scope.domElement.addEventListener('pointermove', onPointerMove);
+                scope.domElement.addEventListener('pointerup', onPointerUp);
+            } else if (isPointerLocked && pointers.length === 0) {
+                // pointer lock 鏃剁洃鍚?document 鐨?pointermove 鍜?wheel
+                document.addEventListener('pointermove', onPointerMove);
+                document.addEventListener('pointerup', onPointerUp);
+                document.addEventListener('wheel', onMouseWheel, { passive: false }); // 鏂板
             }
 
-            //
+            addPointer(event);
 
-            addPointer( event );
-
-            if ( event.pointerType === 'touch' ) {
-
-                onTouchStart( event );
-
+            if (event.pointerType === 'touch') {
+                onTouchStart(event);
             } else {
+                onMouseDown(event);
+            }
+        }
 
-                onMouseDown( event );
+        function onPointerUp(event) {
+            removePointer(event);
 
+            const isPointerLocked = document.pointerLockElement === scope.domElement;
+
+            if (pointers.length === 0) {
+                if (isPointerLocked) {
+                    document.removeEventListener('pointermove', onPointerMove);
+                    document.removeEventListener('pointerup', onPointerUp);
+                    document.removeEventListener('wheel', onMouseWheel, { passive: false }); // 鏂板
+                } else {
+                    scope.domElement.releasePointerCapture(event.pointerId);
+                    scope.domElement.removeEventListener('pointermove', onPointerMove);
+                    scope.domElement.removeEventListener('pointerup', onPointerUp);
+                }
             }
 
+            scope.dispatchEvent(_endEvent);
+            state = STATE.NONE;
         }
 
         function onPointerMove( event ) {
@@ -5764,25 +6006,6 @@ class OrbitControls extends EventDispatcher {
                 onMouseMove( event );
 
             }
-
-        }
-
-        function onPointerUp( event ) {
-
-            removePointer( event );
-
-            if ( pointers.length === 0 ) {
-
-                scope.domElement.releasePointerCapture( event.pointerId );
-
-                scope.domElement.removeEventListener( 'pointermove', onPointerMove );
-                scope.domElement.removeEventListener( 'pointerup', onPointerUp );
-
-            }
-
-            scope.dispatchEvent( _endEvent );
-
-            state = STATE.NONE;
 
         }
 
@@ -5884,7 +6107,6 @@ class OrbitControls extends EventDispatcher {
         }
 
         function onMouseMove( event ) {
-
             switch ( state ) {
 
                 case STATE.ROTATE:
@@ -5917,6 +6139,16 @@ class OrbitControls extends EventDispatcher {
 
         function onMouseWheel( event ) {
 
+            // 绗竴浜虹О妯″紡涓嬭嚜瀹氫箟婊氳疆琛屼负
+            if (scope.isFirstPersonMode) {
+                // 渚嬪锛氱敤婊氳疆鍓嶈繘/鍚庨€€
+                const moveDelta = (event.deltaY < 0 ? 1 : -1) * scope.moveSpeed * 0.2;
+                const dir = new THREE.Vector3();
+                scope.object.getWorldDirection(dir);
+                scope.object.position.addScaledVector(dir, moveDelta);
+                return;
+            }
+
             if ( scope.enabled === false || scope.enableZoom === false || state !== STATE.NONE ) return;
 
             event.preventDefault();
@@ -5936,6 +6168,15 @@ class OrbitControls extends EventDispatcher {
             handleKeyDown( event );
 
         }
+        /**-----------------------------------------鏂板鏁版嵁----------------------------------------------- */
+        function onKeyUp( event ) {
+
+            if ( scope.enabled === false || scope.enablePan === false ) return;
+
+            handleKeyUp( event );
+
+        }
+        /**----------------------------------------------------------------------------------------------- */
 
         function onTouchStart( event ) {
 
@@ -9641,6 +9882,7 @@ class SplatMesh extends THREE.Mesh {
             .then(() => {
                 const buildTime = performance.now() - buildStartTime;
                 if (this.logLevel >= LogLevel.Info) console.log('SplatTree build: ' + buildTime + ' ms');
+                console.log('SplatTree 鏋勫缓瀹屾垚');
                 if (this.disposed) {
                     resolve();
                 } else {
@@ -11694,25 +11936,24 @@ function sortWorker(self) {
 }
 
 
-// 检测是否在微信开发者工具或小程序环境
+// 妫€娴嬫槸鍚﹀湪寰俊寮€鍙戣€呭伐鍏锋垨灏忕▼搴忕幆澧?
 function isWeixinDevtools() {
-    console.log(116877777, typeof wx !== 'undefined' && (wx.getSystemInfoSync && wx.getSystemInfoSync().platform === 'devtools'))
     return typeof wx !== 'undefined' && (wx.getSystemInfoSync && wx.getSystemInfoSync().platform === 'devtools');
 }
 
 function createSortWorker(splatCount, useSharedMemory, enableSIMDInSort, integerBasedSort, dynamicMode,
                                  splatSortDistanceMapPrecision = Constants.DefaultSplatSortDistanceMapPrecision) {
 
-    // 强制关闭 shared memory
+    // 寮哄埗鍏抽棴 shared memory
     useSharedMemory = false;
-    // 强制只用非shared非SIMD wasm
+    // 寮哄埗鍙敤闈瀞hared闈濻IMD wasm
     let sourceWasm = SorterWasmNoSIMDNonShared;
 
-    // 微信开发者工具/小程序环境强制关闭shared memory
+    // 寰俊寮€鍙戣€呭伐鍏?灏忕▼搴忕幆澧冨己鍒跺叧闂璼hared memory
     // if (isWeixinDevtools()) {
     //     useSharedMemory = false;
     // } else {
-    //     // 其他环境下的处理逻辑
+    //     // 鍏朵粬鐜涓嬬殑澶勭悊閫昏緫
     //     useSharedMemory = true;
     // }
 
@@ -11728,7 +11969,7 @@ function createSortWorker(splatCount, useSharedMemory, enableSIMDInSort, integer
 
     // iOS makes choosing the right WebAssembly configuration tricky :(
     // const iOSSemVer = isIOS() ? getIOSSemever() : null;
-    // // 微信开发者工具/小程序环境强制用非shared非SIMD wasm
+    // // 寰俊寮€鍙戣€呭伐鍏?灏忕▼搴忕幆澧冨己鍒剁敤闈瀞hared闈濻IMD wasm
     // if (isWeixinDevtools()) {
     //     sourceWasm = SorterWasmNoSIMDNonShared;
     // } else if (!enableSIMDInSort && !useSharedMemory) {
@@ -11780,7 +12021,7 @@ const WebXRMode = {
 };
 
 /*
-Copyright © 2010-2024 three.js authors & Mark Kellogg
+Copyright 漏 2010-2024 three.js authors & Mark Kellogg
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -12026,7 +12267,7 @@ VRButton.xrSessionIsGranted = false;
 VRButton.registerSessionGrantedListener();
 
 /*
-Copyright © 2010-2024 three.js authors & Mark Kellogg
+Copyright 漏 2010-2024 three.js authors & Mark Kellogg
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -12665,6 +12906,7 @@ class Viewer {
                 }
             }
             this.controls = this.camera.isOrthographicCamera ? this.orthographicControls : this.perspectiveControls;
+            // this.controls = new FirstPersonControls(this.camera, this.renderer.domElement);
             this.controls.update();
         }
     }
@@ -13456,6 +13698,7 @@ class Viewer {
                 if (this.isDisposingOrDisposed()) return;
                 const splatCount = this.splatMesh.getSplatCount();
                 if (showLoadingUIForSplatTreeBuild && splatCount >= MIN_SPLAT_COUNT_TO_SHOW_SPLAT_TREE_LOADING_SPINNER) {
+                    console.log(13614, finished, splatOptimizingTaskId)
                     if (!finished && !splatOptimizingTaskId) {
                         this.loadingSpinner.setMinimized(true, true);
                         splatOptimizingTaskId = this.loadingSpinner.addTask('Optimizing data structures...');
