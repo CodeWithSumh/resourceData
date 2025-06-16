@@ -4843,7 +4843,7 @@ class OrbitControls extends EventDispatcher {
         
 
         /**----------------------------------------------- */
-        this.isFirstPersonMode = false; // 鏄惁涓虹涓€浜虹О妯″紡, 榛樿涓篺alse
+        this.isFirstPersonMode = true; // 是否为第一人称，默认为false
         this.moveSpeed = 5;             // 绗竴浜虹О绉诲姩閫熷害
         this._moveDir = new THREE.Vector3();
         this._velocity = new THREE.Vector3();
