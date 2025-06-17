@@ -32,23 +32,43 @@
     import * as GaussianSplats3D from '@mkkellogg/gaussian-splats-3d';
     import * as THREE from 'three';
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const mode = parseInt(urlParams.get('mode')) || 0;
-  
-    const viewer = new GaussianSplats3D.Viewer({
-        'cameraUp': [0, 1, 0],
-        'initialCameraPosition': [0.2545772143590187, -0.022421991409040026, -5.515991088728122],
-        'initialCameraLookAt': [0, 0, 0],
-        'sphericalHarmonicsDegree': 2,
-    });
-    // let path = 'https://gaussian-data-1312600229.cos.ap-beijing.myqcloud.com/point_cloud.ply';
-    let path = 'assets/testtt.ply'
-    viewer.addSplatScene(path, {
-      'progressiveLoad': true
+    
+    window.addEventListener("message", (event) => {
+      const { data } = event;
+
+      // console.log(3999999, data)
+
+      // const pathId = parseInt(data.pageParams.id);
+      // let path = ''
+      // switch (pathId) {
+      //   case 1:
+      //     path = 'assets/huabiao.ply'; break;
+      //   case 2:
+      //     path = 'assets/boya.ply'; break;
+      //   case 3:
+      //     path = 'assets/lidazhao.ply'; break;
+      //   case 4:
+      //     path = 'assets/testtt.ply'; break;
+      // }
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const mode = parseInt(urlParams.get('mode')) || 0;
+    
+      const viewer = new GaussianSplats3D.Viewer({
+          'cameraUp': [0, 1, 0],
+          'initialCameraPosition': [0.2545772143590187, -0.022421991409040026, -5.515991088728122],
+          'initialCameraLookAt': [0, 0, 0],
+          'sphericalHarmonicsDegree': 2,
+      });
+      // console.log(444444, window.location)
+      let path = 'https://gaussian-data-1312600229.cos.ap-beijing.myqcloud.com/lidazhao.ply';
+      viewer.addSplatScene(path, {
+        'progressiveLoad': true
+      })
+      .then(() => {
+          viewer.start();
+      });
     })
-    .then(() => {
-        viewer.start();
-    });
 
   </script>
 </body>
