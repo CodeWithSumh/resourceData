@@ -4729,7 +4729,7 @@ var Utils = /*#__PURE__*/Object.freeze({
 });
 
 /*
-Copyright 漏 2010-2024 three.js authors & Mark Kellogg
+Copyright © 2010-2024 three.js authors & Mark Kellogg
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -4768,7 +4768,7 @@ class OrbitControls extends EventDispatcher {
         this.domElement = domElement;
         this.domElement.style.touchAction = 'none'; // disable touch scroll
 
-        /**-----------------------------------------鏂板姞鏁版嵁------------------------------------------ */
+        /**-----------------------------------------新加数据------------------------------------------ */
         this.movingKeys = {};
         this.moveInterval = null;
         /**------------------------------------------------------------------------------------------ */
@@ -4843,8 +4843,8 @@ class OrbitControls extends EventDispatcher {
         
 
         /**----------------------------------------------- */
-        this.isFirstPersonMode = true; // 是否为第一人称，默认为false
-        this.moveSpeed = 5;             // 绗竴浜虹О绉诲姩閫熷害
+        this.isFirstPersonMode = false; // 是否为第一人称模式, 默认为false
+        this.moveSpeed = 5;             // 第一人称移动速度
         this._moveDir = new THREE.Vector3();
         this._velocity = new THREE.Vector3();
         this._yaw = 0;
@@ -4852,15 +4852,15 @@ class OrbitControls extends EventDispatcher {
 
         /**----------------------------------------------- */
         
-        // -----------銆愭柊澧烇細鍒濆鍖栫涓€浜虹О鏈濆悜銆?----------
+        // -----------【新增：初始化第一人称朝向】-----------
         if (this.isFirstPersonMode) {
             const euler = new THREE.Euler().setFromQuaternion(this.object.quaternion, 'YXZ');
             this._yaw = euler.y;
             this._pitch = euler.x;
-            // 鍙€夛細鎵撳嵃鍒濆鐩告満鍙傛暟
-            // console.log('[Init] 鐩告満鍒濆 position:', this.object.position.toArray());
-            // console.log('[Init] 鐩告満鍒濆 quaternion:', this.object.quaternion.toArray());
-            // console.log('[Init] 绗竴浜虹О鍒濆 _yaw:', this._yaw, '_pitch:', this._pitch);
+            // 可选：打印初始相机参数
+            // console.log('[Init] 相机初始 position:', this.object.position.toArray());
+            // console.log('[Init] 相机初始 quaternion:', this.object.quaternion.toArray());
+            // console.log('[Init] 第一人称初始 _yaw:', this._yaw, '_pitch:', this._pitch);
         }
         // -----------------------------------------------
 
@@ -4892,7 +4892,7 @@ class OrbitControls extends EventDispatcher {
         this.listenToKeyEvents = function( domElement ) {
 
             domElement.addEventListener( 'keydown', onKeyDown );
-            domElement.addEventListener('keyup', onKeyUp); // 鏂板
+            domElement.addEventListener('keyup', onKeyUp); // 新增
             this._domElementKeyEvents = domElement;
 
         };
@@ -4900,7 +4900,7 @@ class OrbitControls extends EventDispatcher {
         this.stopListenToKeyEvents = function() {
 
             this._domElementKeyEvents.removeEventListener( 'keydown', onKeyDown );
-            this._domElementKeyEvents.removeEventListener('keyup', onKeyUp); // 鏂板
+            this._domElementKeyEvents.removeEventListener('keyup', onKeyUp); // 新增
             this._domElementKeyEvents = null;
 
         };
@@ -4958,7 +4958,8 @@ class OrbitControls extends EventDispatcher {
 
                 /**------------------------------------------------------------------ */
                 if (scope.isFirstPersonMode) {
-                    const delta = 0.016; // 鍙互鎺ュ彈 deltaTime 浣滀负鍙傛暟杩涗竴姝ヤ紭鍖?                    scope._moveDir.set(0, 0, 0);
+                    const delta = 0.016; // 可以接受 deltaTime 作为参数进一步优化
+                    scope._moveDir.set(0, 0, 0);
 
                     if (scope.movingKeys['KeyW']) scope._moveDir.z -= 1;
                     if (scope.movingKeys['KeyS']) scope._moveDir.z += 1;
@@ -4969,7 +4970,7 @@ class OrbitControls extends EventDispatcher {
                     scope._velocity.copy(scope._moveDir).multiplyScalar(scope.moveSpeed * delta);
                     scope.object.position.add(scope._velocity);
 
-                    return false; // 璺宠繃 Orbit 妯″紡涓嬬殑鏇存柊
+                    return false; // 跳过 Orbit 模式下的更新
                 }
                 /**------------------------------------------------------------------ */
 
@@ -5271,7 +5272,7 @@ class OrbitControls extends EventDispatcher {
             
             scope.isFirstPersonMode = enable;
             if (enable) {
-                // 鍚屾褰撳墠鐩告満鏈濆悜鍒?_yaw/_pitch
+                // 同步当前相机朝向到 _yaw/_pitch
                 const euler = new THREE.Euler().setFromQuaternion(scope.object.quaternion, 'YXZ');
                 scope._yaw = euler.y;
                 scope._pitch = euler.x;
@@ -5280,8 +5281,10 @@ class OrbitControls extends EventDispatcher {
             //     scope.enableRotate = false;
             //     scope.enableZoom = false;
             //     scope.enablePan = false;
-                // scope.domElement.requestPointerLock(); // 鍙€?            // } else {
-                // document.exitPointerLock(); // 鍙€?            //     scope.enableRotate = true;
+                // scope.domElement.requestPointerLock(); // 可选
+            // } else {
+                // document.exitPointerLock(); // 可选
+            //     scope.enableRotate = true;
             //     scope.enableZoom = true;
             //     scope.enablePan = true;
             // }
@@ -5336,7 +5339,7 @@ class OrbitControls extends EventDispatcher {
                 console.log(5321111, distance, objectMatrix )
 
                 if ( scope.screenSpacePanning === true ) {
-                    // 鍘熷鍐欐硶
+                    // 原始写法
 
                     // v.setFromMatrixColumn( objectMatrix, 1 );
 
@@ -5357,7 +5360,7 @@ class OrbitControls extends EventDispatcher {
 
         }();
 
-        // 绉诲姩 deltaX and deltaY are in pixels; right and down are positive
+        // 移动 deltaX and deltaY are in pixels; right and down are positive
         const pan = function() {
 
             const offset = new Vector3();
@@ -5493,11 +5496,11 @@ class OrbitControls extends EventDispatcher {
                 scope._yaw -= event.movementX * 0.002;
                 scope._pitch -= event.movementY * 0.002;
 
-                // 闄愬埗 pitch 鑼冨洿锛岄槻姝㈡姮澶存姮鍒板ぉ鑺辨澘
+                // 限制 pitch 范围，防止抬头抬到天花板
                 const limit = Math.PI / 2 - 0.01;
                 scope._pitch = Math.max(-limit, Math.min(limit, scope._pitch));
 
-                // 鉁?鐢ㄥ洓鍏冩暟鏇夸唬 rotation 璁剧疆锛屽交搴曢伩鍏嶇炕杞拰閿欎贡
+                // ✅ 用四元数替代 rotation 设置，彻底避免翻转和错乱
                 const euler = new THREE.Euler(scope._pitch, scope._yaw, 0, 'YXZ');
                 scope.object.quaternion.setFromEuler(euler);
 
@@ -5547,18 +5550,20 @@ class OrbitControls extends EventDispatcher {
 
         function handleMouseMovePan( event ) {
             if (scope.isFirstPersonMode) {
-                // 璁＄畻骞崇Щ澧為噺
+                // 计算平移增量
                 panEnd.set(event.clientX, event.clientY);
                 panDelta.subVectors(panEnd, panStart).multiplyScalar(scope.panSpeed * 0.01);
 
-                // 璁＄畻鐩告満鍙虫柟鍚戝拰涓婃柟鍚?                const right = new THREE.Vector3();
+                // 计算相机右方向和上方向
+                const right = new THREE.Vector3();
                 scope.object.getWorldDirection(right);
                 right.cross(scope.object.up).normalize();
 
                 const up = new THREE.Vector3();
                 up.copy(scope.object.up).normalize();
 
-                // 鏍规嵁榧犳爣绉诲姩閲忓钩绉荤浉鏈?                scope.object.position.addScaledVector(right, panDelta.x);
+                // 根据鼠标移动量平移相机
+                scope.object.position.addScaledVector(right, panDelta.x);
                 scope.object.position.addScaledVector(up, panDelta.y);
 
                 panStart.copy(panEnd);
@@ -5595,7 +5600,7 @@ class OrbitControls extends EventDispatcher {
             scope.update();
 
         }
-        /**-----------------------------------------鏂板姞鏁版嵁-------------------------------------------- */
+        /**-----------------------------------------新加数据-------------------------------------------- */
         function handleKeyUp(event) {
             if (scope.movingKeys[event.code]) {
                 delete scope.movingKeys[event.code];
@@ -5610,8 +5615,8 @@ class OrbitControls extends EventDispatcher {
 
             let needsUpdate = false;
 
-        /**-----------------------------------------鏂板姞鏁版嵁-------------------------------------------- */
-        // 璁板綍鎸変笅鐨勬柟鍚戦敭
+        /**-----------------------------------------新加数据-------------------------------------------- */
+        // 记录按下的方向键
         if (!scope.movingKeys[event.code]) {
             scope.movingKeys[event.code] = true;
         }
@@ -5619,7 +5624,7 @@ class OrbitControls extends EventDispatcher {
 
         if (!scope.movingKeys[event.code]) {
             scope.movingKeys[event.code] = true;
-            // 鎸変笅鏃剁珛鍗崇Щ鍔ㄤ竴娆?            
+            // 按下时立即移动一次
             switch (event.code) {
                 case scope.keys.UP:
                     if (event.ctrlKey || event.metaKey || event.shiftKey) {
@@ -5688,7 +5693,7 @@ class OrbitControls extends EventDispatcher {
                     }
                 }
                 scope.update();
-            }, 16); // 绾?0fps
+            }, 16); // 约60fps
         }
 
             switch ( event.code ) {
@@ -5776,7 +5781,7 @@ class OrbitControls extends EventDispatcher {
         function handleTouchMoveRotate( event ) {
             /**-------------------------------------------------------- */ 
             if (scope.isFirstPersonMode) {
-                // 璁＄畻 touch 绉诲姩璺濈
+                // 计算 touch 移动距离
                 let dx, dy;
                 if (pointers.length === 1) {
                     dx = event.pageX - rotateStart.x;
@@ -5791,7 +5796,8 @@ class OrbitControls extends EventDispatcher {
                     rotateEnd.set(x, y);
                 }
 
-                // 鏃嬭浆鐏垫晱搴﹀彲鏍规嵁闇€瑕佽皟鏁?                scope._yaw -= dx * 0.008;
+                // 旋转灵敏度可根据需要调整
+                scope._yaw -= dx * 0.008;
                 scope._pitch -= dy * 0.008;
 
                 const limit = Math.PI / 2 - 0.01;
@@ -5835,7 +5841,7 @@ class OrbitControls extends EventDispatcher {
         function handleTouchMovePan( event ) {
         /**---------------------------------------- */
             if (scope.isFirstPersonMode) {
-                // 鍙屾寚骞崇Щ锛氬乏鍙?涓婁笅骞崇Щ鐩告満
+                // 双指平移：左右/上下平移相机
                 if (pointers.length === 1) {
                     panEnd.set(event.pageX, event.pageY);
                 } else {
@@ -5846,14 +5852,16 @@ class OrbitControls extends EventDispatcher {
                 }
                 panDelta.subVectors(panEnd, panStart).multiplyScalar(scope.panSpeed * 0.01);
 
-                // 璁＄畻鐩告満鍙虫柟鍚戝拰涓婃柟鍚?                const right = new THREE.Vector3();
+                // 计算相机右方向和上方向
+                const right = new THREE.Vector3();
                 scope.object.getWorldDirection(right);
                 right.cross(scope.object.up).normalize();
 
                 const up = new THREE.Vector3();
                 up.copy(scope.object.up).normalize();
 
-                // 鏍规嵁鎵嬫寚绉诲姩閲忓钩绉荤浉鏈?                scope.object.position.addScaledVector(right, panDelta.x);
+                // 根据手指移动量平移相机
+                scope.object.position.addScaledVector(right, panDelta.x);
                 scope.object.position.addScaledVector(up, -panDelta.y);
 
                 panStart.copy(panEnd);
@@ -5887,7 +5895,8 @@ class OrbitControls extends EventDispatcher {
         function handleTouchMoveDolly( event ) {
         /**---------------------------------------- */
             if (scope.isFirstPersonMode) {
-                // 鍙屾寚缂╂斁锛氬墠鍚庣Щ鍔ㄧ浉鏈?                const position = getSecondPointerPosition(event);
+                // 双指缩放：前后移动相机
+                const position = getSecondPointerPosition(event);
                 const dx = event.pageX - position.x;
                 const dy = event.pageY - position.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
@@ -5895,7 +5904,8 @@ class OrbitControls extends EventDispatcher {
                 dollyEnd.set(0, distance);
                 dollyDelta.set(0, dollyEnd.y - dollyStart.y);
 
-                // 缂╂斁鐏垫晱搴﹀彲璋?                const moveDelta = dollyDelta.y * 0.01;
+                // 缩放灵敏度可调
+                const moveDelta = dollyDelta.y * 0.01;
                 const dir = new THREE.Vector3();
                 scope.object.getWorldDirection(dir);
                 scope.object.position.addScaledVector(dir, moveDelta);
@@ -5957,10 +5967,10 @@ class OrbitControls extends EventDispatcher {
                 scope.domElement.addEventListener('pointermove', onPointerMove);
                 scope.domElement.addEventListener('pointerup', onPointerUp);
             } else if (isPointerLocked && pointers.length === 0) {
-                // pointer lock 鏃剁洃鍚?document 鐨?pointermove 鍜?wheel
+                // pointer lock 时监听 document 的 pointermove 和 wheel
                 document.addEventListener('pointermove', onPointerMove);
                 document.addEventListener('pointerup', onPointerUp);
-                document.addEventListener('wheel', onMouseWheel, { passive: false }); // 鏂板
+                document.addEventListener('wheel', onMouseWheel, { passive: false }); // 新增
             }
 
             addPointer(event);
@@ -5981,7 +5991,7 @@ class OrbitControls extends EventDispatcher {
                 if (isPointerLocked) {
                     document.removeEventListener('pointermove', onPointerMove);
                     document.removeEventListener('pointerup', onPointerUp);
-                    document.removeEventListener('wheel', onMouseWheel, { passive: false }); // 鏂板
+                    document.removeEventListener('wheel', onMouseWheel, { passive: false }); // 新增
                 } else {
                     scope.domElement.releasePointerCapture(event.pointerId);
                     scope.domElement.removeEventListener('pointermove', onPointerMove);
@@ -6139,9 +6149,9 @@ class OrbitControls extends EventDispatcher {
 
         function onMouseWheel( event ) {
 
-            // 绗竴浜虹О妯″紡涓嬭嚜瀹氫箟婊氳疆琛屼负
+            // 第一人称模式下自定义滚轮行为
             if (scope.isFirstPersonMode) {
-                // 渚嬪锛氱敤婊氳疆鍓嶈繘/鍚庨€€
+                // 例如：用滚轮前进/后退
                 const moveDelta = (event.deltaY < 0 ? 1 : -1) * scope.moveSpeed * 0.2;
                 const dir = new THREE.Vector3();
                 scope.object.getWorldDirection(dir);
@@ -6168,7 +6178,7 @@ class OrbitControls extends EventDispatcher {
             handleKeyDown( event );
 
         }
-        /**-----------------------------------------鏂板鏁版嵁----------------------------------------------- */
+        /**-----------------------------------------新增数据----------------------------------------------- */
         function onKeyUp( event ) {
 
             if ( scope.enabled === false || scope.enablePan === false ) return;
@@ -9882,7 +9892,7 @@ class SplatMesh extends THREE.Mesh {
             .then(() => {
                 const buildTime = performance.now() - buildStartTime;
                 if (this.logLevel >= LogLevel.Info) console.log('SplatTree build: ' + buildTime + ' ms');
-                console.log('SplatTree 鏋勫缓瀹屾垚');
+                console.log('SplatTree 构建完成');
                 if (this.disposed) {
                     resolve();
                 } else {
@@ -11936,7 +11946,7 @@ function sortWorker(self) {
 }
 
 
-// 妫€娴嬫槸鍚﹀湪寰俊寮€鍙戣€呭伐鍏锋垨灏忕▼搴忕幆澧?
+// 检测是否在微信开发者工具或小程序环境
 function isWeixinDevtools() {
     return typeof wx !== 'undefined' && (wx.getSystemInfoSync && wx.getSystemInfoSync().platform === 'devtools');
 }
@@ -11944,16 +11954,16 @@ function isWeixinDevtools() {
 function createSortWorker(splatCount, useSharedMemory, enableSIMDInSort, integerBasedSort, dynamicMode,
                                  splatSortDistanceMapPrecision = Constants.DefaultSplatSortDistanceMapPrecision) {
 
-    // 寮哄埗鍏抽棴 shared memory
+    // 强制关闭 shared memory
     useSharedMemory = false;
-    // 寮哄埗鍙敤闈瀞hared闈濻IMD wasm
+    // 强制只用非shared非SIMD wasm
     let sourceWasm = SorterWasmNoSIMDNonShared;
 
-    // 寰俊寮€鍙戣€呭伐鍏?灏忕▼搴忕幆澧冨己鍒跺叧闂璼hared memory
+    // 微信开发者工具/小程序环境强制关闭shared memory
     // if (isWeixinDevtools()) {
     //     useSharedMemory = false;
     // } else {
-    //     // 鍏朵粬鐜涓嬬殑澶勭悊閫昏緫
+    //     // 其他环境下的处理逻辑
     //     useSharedMemory = true;
     // }
 
@@ -11969,7 +11979,7 @@ function createSortWorker(splatCount, useSharedMemory, enableSIMDInSort, integer
 
     // iOS makes choosing the right WebAssembly configuration tricky :(
     // const iOSSemVer = isIOS() ? getIOSSemever() : null;
-    // // 寰俊寮€鍙戣€呭伐鍏?灏忕▼搴忕幆澧冨己鍒剁敤闈瀞hared闈濻IMD wasm
+    // // 微信开发者工具/小程序环境强制用非shared非SIMD wasm
     // if (isWeixinDevtools()) {
     //     sourceWasm = SorterWasmNoSIMDNonShared;
     // } else if (!enableSIMDInSort && !useSharedMemory) {
@@ -12021,7 +12031,7 @@ const WebXRMode = {
 };
 
 /*
-Copyright 漏 2010-2024 three.js authors & Mark Kellogg
+Copyright © 2010-2024 three.js authors & Mark Kellogg
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -12267,7 +12277,7 @@ VRButton.xrSessionIsGranted = false;
 VRButton.registerSessionGrantedListener();
 
 /*
-Copyright 漏 2010-2024 three.js authors & Mark Kellogg
+Copyright © 2010-2024 three.js authors & Mark Kellogg
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
