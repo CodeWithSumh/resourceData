@@ -5321,7 +5321,6 @@ class OrbitControls extends EventDispatcher {
             const v = new Vector3();
 
             return function panLeft( distance, objectMatrix ) {
-                console.log(530666, distance, objectMatrix )
 
                 v.setFromMatrixColumn( objectMatrix, 0 ); // get X column of objectMatrix
                 v.multiplyScalar( - distance );
@@ -5332,19 +5331,15 @@ class OrbitControls extends EventDispatcher {
 
         }();
         const panUp = function() {
-
             const v = new Vector3();
 
             return function panUp( distance, objectMatrix ) {
-                console.log(5321111, distance, objectMatrix )
 
+                    // console.log(53444444, scope.screenSpacePanning, scope.isFirstPersonMode)
                 if ( scope.screenSpacePanning === true ) {
                     // 原始写法
 
-                    // v.setFromMatrixColumn( objectMatrix, 1 );
-
-                    v.setFromMatrixColumn( objectMatrix, 2 );
-
+                    v.setFromMatrixColumn( objectMatrix, 1 );
                 } else {
 
                     v.setFromMatrixColumn( objectMatrix, 0 );
@@ -5362,7 +5357,6 @@ class OrbitControls extends EventDispatcher {
 
         // 移动 deltaX and deltaY are in pixels; right and down are positive
         const pan = function() {
-
             const offset = new Vector3();
 
             return function pan( deltaX, deltaY ) {
@@ -5384,8 +5378,6 @@ class OrbitControls extends EventDispatcher {
                     panUp( 2 * deltaY * targetDistance / element.clientHeight, scope.object.matrix );
 
                 } else if ( scope.object.isOrthographicCamera ) {
-                    console.log(22222)
-
                     // orthographic
                     panLeft( deltaX * ( scope.object.right - scope.object.left ) /
                                         scope.object.zoom / element.clientWidth, scope.object.matrix );
@@ -5481,7 +5473,6 @@ class OrbitControls extends EventDispatcher {
         }
 
         function handleMouseDownPan( event ) {
-
             panStart.set( event.clientX, event.clientY );
 
         }
@@ -5492,15 +5483,13 @@ class OrbitControls extends EventDispatcher {
 
 /**-------------------------------------------------------- */
             if (scope.isFirstPersonMode) {
-                // console.log(54777)
+
                 scope._yaw -= event.movementX * 0.002;
                 scope._pitch -= event.movementY * 0.002;
 
-                // 限制 pitch 范围，防止抬头抬到天花板
                 const limit = Math.PI / 2 - 0.01;
                 scope._pitch = Math.max(-limit, Math.min(limit, scope._pitch));
 
-                // ✅ 用四元数替代 rotation 设置，彻底避免翻转和错乱
                 const euler = new THREE.Euler(scope._pitch, scope._yaw, 0, 'YXZ');
                 scope.object.quaternion.setFromEuler(euler);
 
@@ -5563,12 +5552,13 @@ class OrbitControls extends EventDispatcher {
                 up.copy(scope.object.up).normalize();
 
                 // 根据鼠标移动量平移相机
-                scope.object.position.addScaledVector(right, panDelta.x);
+                scope.object.position.addScaledVector(right, -panDelta.x);
                 scope.object.position.addScaledVector(up, panDelta.y);
 
                 panStart.copy(panEnd);
                 return;
-            } else {
+            }
+
                 panEnd.set( event.clientX, event.clientY );
 
                 panDelta.subVectors( panEnd, panStart ).multiplyScalar( scope.panSpeed );
@@ -5578,7 +5568,6 @@ class OrbitControls extends EventDispatcher {
                 panStart.copy( panEnd );
 
                 scope.update();
-            }
             
 
         }
@@ -9892,7 +9881,6 @@ class SplatMesh extends THREE.Mesh {
             .then(() => {
                 const buildTime = performance.now() - buildStartTime;
                 if (this.logLevel >= LogLevel.Info) console.log('SplatTree build: ' + buildTime + ' ms');
-                console.log('SplatTree 构建完成');
                 if (this.disposed) {
                     resolve();
                 } else {
@@ -13708,7 +13696,6 @@ class Viewer {
                 if (this.isDisposingOrDisposed()) return;
                 const splatCount = this.splatMesh.getSplatCount();
                 if (showLoadingUIForSplatTreeBuild && splatCount >= MIN_SPLAT_COUNT_TO_SHOW_SPLAT_TREE_LOADING_SPINNER) {
-                    console.log(13614, finished, splatOptimizingTaskId)
                     if (!finished && !splatOptimizingTaskId) {
                         this.loadingSpinner.setMinimized(true, true);
                         splatOptimizingTaskId = this.loadingSpinner.addTask('Optimizing data structures...');
